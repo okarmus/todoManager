@@ -6,12 +6,13 @@ import scala.util.{Failure, Success, Try}
 
 trait User {
   def login: String
+  def email: String
 
   val isActive: Boolean
 }
 
 
-case class ActiveUser(login: String, password: String) extends User {
+case class ActiveUser(login: String, email: String, password: String) extends User {
   //TODO password should be validated and should not be stored as a plain text !!
 
   implicit def uuidToString(uuid: UUID) : String = uuid.toString
@@ -27,7 +28,7 @@ case class ActiveUser(login: String, password: String) extends User {
   }
 }
 
-case class NotActiveUser(login: String) extends User {
+case class NotActiveUser(login: String, email: String) extends User {
   override val isActive: Boolean = false
 }
 

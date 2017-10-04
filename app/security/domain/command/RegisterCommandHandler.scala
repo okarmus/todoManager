@@ -5,7 +5,7 @@ import security.domain.repository.InMemoryRepository
 
 import scala.util.{Failure, Success, Try}
 
-case class RegisterCommand(login: String)
+case class RegisterCommand(login: String, email: String, repeatedEmail: String)
 
 
 object RegisterCommandHandler {
@@ -21,7 +21,7 @@ object RegisterCommandHandler {
     Success("User has been successfully stored")
   }
 
-  implicit def commandToUser(command: RegisterCommand) : User = NotActiveUser(command.login)
+  implicit def commandToUser(command: RegisterCommand) : User = NotActiveUser(command.login, command.email)
 
 }
 

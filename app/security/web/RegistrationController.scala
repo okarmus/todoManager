@@ -1,14 +1,14 @@
-package security.controllers
+package security.web
 
 import javax.inject._
 
 import play.api.mvc._
 import security.domain.command.{LoginAlreadyExistsException, RegisterCommand, RegisterCommandHandler}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 @Singleton
-class SecurityController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+class RegistrationController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   def register() = Action { implicit request: Request[AnyContent] =>
     extractBody()
@@ -17,17 +17,19 @@ class SecurityController @Inject()(cc: ControllerComponents) extends AbstractCon
       .apply(request)
   }
 
-  private def extractBody(): Request[AnyContent] => Try[String] = {
-    request =>
-      request.body.asJson
-        .flatMap(json => (json \ "login").asOpt[String])
-        .map(l => Success(l))
-        .getOrElse(Failure[String](InvalidRequestBodyFormatException("Invalid request body format")))
+  private def extractBody(): Request[AnyContent] => Try[RegistrationForm] = {
+    import RegistrationForm._
+    request => request.body.asJson
+          .map(deserializeForm)
+          .getOrElse(Failure(new IllegalArgumentException("Request body is not provided")))
   }
 
-  private def sendCommand(): Try[String] => Try[String] = {
+  private def sendCommand(): Try[RegistrationForm] => Try[String] = {
     import RegisterCommandHandler._
-    maybeLogin => maybeLogin.map(RegisterCommand).flatMap(handle)
+    maybeForm =>
+      maybeForm
+        .map(maybeForm => RegisterCommand(maybeForm.login, maybeForm.email, maybeForm.repeatedEmail))
+        .flatMap(handle)
   }
 
   private def buildResponse(): Try[String] => Result = {
@@ -40,8 +42,8 @@ class SecurityController @Inject()(cc: ControllerComponents) extends AbstractCon
 
   def matchFailure(throwable: Throwable): Result = {
     throwable match {
-      case e : InvalidRequestBodyFormatException => BadRequest(e.message)
-      case e : LoginAlreadyExistsException => BadRequest(e.message)
+      case e: InvalidRequestBodyFormatException => BadRequest(e.message)
+      case e: LoginAlreadyExistsException => BadRequest(e.message)
       case _ => InternalServerError("Unexpected exception occurred")
     }
   }
