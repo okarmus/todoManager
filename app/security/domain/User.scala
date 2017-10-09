@@ -11,7 +11,6 @@ trait User {
   val isActive: Boolean
 }
 
-
 case class ActiveUser(login: String, email: String, password: String) extends User {
   //TODO password should be validated and should not be stored as a plain text !!
 

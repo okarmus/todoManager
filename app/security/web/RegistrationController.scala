@@ -8,7 +8,10 @@ import security.domain.command.{LoginAlreadyExistsException, RegisterCommand, Re
 import scala.util.{Failure, Try}
 
 @Singleton
-class RegistrationController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+class RegistrationController @Inject()(
+                                        cc: ControllerComponents,
+                                        commandHandler: RegisterCommandHandler
+                                      ) extends AbstractController(cc) {
 
   def register() = Action { implicit request: Request[AnyContent] =>
     extractBody()
@@ -19,17 +22,17 @@ class RegistrationController @Inject()(cc: ControllerComponents) extends Abstrac
 
   private def extractBody(): Request[AnyContent] => Try[RegistrationForm] = {
     import RegistrationForm._
-    request => request.body.asJson
-          .map(deserializeForm)
-          .getOrElse(Failure(new IllegalArgumentException("Request body is not provided")))
+    request =>
+      request.body.asJson
+        .map(deserializeForm)
+        .getOrElse(Failure(new IllegalArgumentException("Request body is not provided")))
   }
 
   private def sendCommand(): Try[RegistrationForm] => Try[String] = {
-    import RegisterCommandHandler._
     maybeForm =>
       maybeForm
         .map(maybeForm => RegisterCommand(maybeForm.login, maybeForm.email, maybeForm.repeatedEmail))
-        .flatMap(handle)
+        .flatMap(commandHandler.handle)
   }
 
   private def buildResponse(): Try[String] => Result = {

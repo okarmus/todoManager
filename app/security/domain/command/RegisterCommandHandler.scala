@@ -1,27 +1,42 @@
 package security.domain.command
 
+import javax.inject.Inject
+
+import security.application.activate.ActivationQueue
+import security.domain.repository.PostgresRegistrationRepository
 import security.domain.{NotActiveUser, User}
-import security.domain.repository.InMemoryRepository
 
 import scala.util.{Failure, Success, Try}
 
 case class RegisterCommand(login: String, email: String, repeatedEmail: String)
 
 
-object RegisterCommandHandler {
-  import InMemoryRepository._
-  def handle(command: RegisterCommand) : Try[String] = {
-    findByLogin(command.login)
-        .map(_ => Failure(LoginAlreadyExistsException("Provided login is already used")))
-        .getOrElse(newUser(command))
+class RegisterCommandHandler @Inject()(activationQueue: ActivationQueue, repository : PostgresRegistrationRepository) {
+
+  def handle(command: RegisterCommand): Try[String] = {
+    repository.contains(command.login) match {          //TODO what about already used e-mail?
+      case false => handleNewUser(command)
+      case true => Failure(LoginAlreadyExistsException("Provided login is already used"))
+    }
   }
 
-  private def newUser(command: RegisterCommand): Try[String] = {
-    storeUser(command)
-    Success("User has been successfully stored")
+  private def handleNewUser(command: RegisterCommand): Try[String] = {
+    storeUser()
+      .andThen(_ => Success("User has been successfully stored"))
+      .apply(command)
   }
 
-  implicit def commandToUser(command: RegisterCommand) : User = NotActiveUser(command.login, command.email)
+  private def storeUser() : RegisterCommand => User = {
+    command => {
+      val user = commandToUser(command)
+      activationQueue.push(user)
+      repository.storeUser(user)
+      user
+    }
+  }
+
+  private def commandToUser(command: RegisterCommand): User = NotActiveUser(command.login, command.email)
+
 
 }
 

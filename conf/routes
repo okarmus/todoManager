@@ -6,6 +6,9 @@
 # An example controller showing a sample home page
 GET     /                           controllers.HomeController.index
 
+# System status controller
+
+GET /system/status                  status.SystemStatusController.status
 
 # Registration controller
 POST    /register                      security.web.RegistrationController.register

@@ -1,0 +1,5 @@
+package status
+
+class ScalaControllerInject {
+
+}
