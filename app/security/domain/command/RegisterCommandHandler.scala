@@ -2,7 +2,6 @@ package security.domain.command
 
 import javax.inject.Inject
 
-import security.application.activate.ActivationQueue
 import security.domain.repository.PostgresRegistrationRepository
 import security.domain.{NotActiveUser, User}
 
@@ -10,8 +9,7 @@ import scala.util.{Failure, Success, Try}
 
 case class RegisterCommand(login: String, email: String, repeatedEmail: String)
 
-
-class RegisterCommandHandler @Inject()(activationQueue: ActivationQueue, repository : PostgresRegistrationRepository) {
+class RegisterCommandHandler @Inject()( repository : PostgresRegistrationRepository) {
 
   def handle(command: RegisterCommand): Try[String] = {
     repository.contains(command.login) match {          //TODO what about already used e-mail?
@@ -29,14 +27,12 @@ class RegisterCommandHandler @Inject()(activationQueue: ActivationQueue, reposit
   private def storeUser() : RegisterCommand => User = {
     command => {
       val user = commandToUser(command)
-      activationQueue.push(user)
       repository.storeUser(user)
       user
     }
   }
 
   private def commandToUser(command: RegisterCommand): User = NotActiveUser(command.login, command.email)
-
 
 }
 
